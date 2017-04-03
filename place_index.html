@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>place nl logs</title>
+	<style type="text/css">
+		*{
+			font-family: sans-serif;
+			font-size: 1em;
+		}
+		
+		table{
+			width: 100%;
+		}
+		tr{
+			text-align: left;
+		}
+		table tr{
+			border: 2px solid #404040;
+		}
+	</style>
+</head>
+<body>
+
+
+<table>
+<thead>
+	<tr>
+		<th>Username</th>
+		<th>X Coord</th>
+		<th>Y Coord</th>
+		<th>New color</th>
+		<th>Old color</th>
+	</tr>
+</thead>
+<tbody id='fill_table'>
+	
+</tbody>
+</table>
+
+
+</body>
+<script type="text/javascript" src="https://code.jquery.com/jquery-2.1.1.min.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+
+var socket = io();
+
+socket.on('log_list', function(data){
+	
+    var table = $('#fill_table');
+
+    for(var i = 0; i < data.length; i++){
+
+    	var tableRow = $('<tr>');
+
+		$('<td>').appendTo(tableRow).html(data[i].Username);
+		$('<td>').appendTo(tableRow).html(data[i].X);
+		$('<td>').appendTo(tableRow).html(data[i].Y);
+		$('<td>').appendTo(tableRow).html(data[i].NewColor);
+		$('<td>').appendTo(tableRow).html(data[i].OldColor);
+
+		tableRow.appendTo(table);
+    }
+});
+
+
+socket.on('update_log_list', function(data){
+
+    var table = $('#fill_table');
+
+    var tableRow = $('<tr>');
+
+    $('<td>').appendTo(tableRow).html(data.Username);
+    $('<td>').appendTo(tableRow).html(data.X);
+    $('<td>').appendTo(tableRow).html(data.Y);
+    $('<td>').appendTo(tableRow).html(data.NewColor);
+    $('<td>').appendTo(tableRow).html(data.OldColor);
+
+    tableRow.prependTo(table);
+
+});
+
+</script>
+</html>
