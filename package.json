@@ -5,8 +5,7 @@
   "main": "place_counter.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node gateway
-    .js"
+    "start": "node gateway.js"
   },
   "author": "",
   "license": "ISC",
