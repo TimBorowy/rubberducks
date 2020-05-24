@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>ESPduck messages</title>
+  <style type="text/css">
+    * {
+      font-family: sans-serif;
+      font-size: 1em;
+    }
+
+    table {
+      width: 100%;
+    }
+
+    tr {
+      text-align: left;
+    }
+
+    table tr {
+      border: 2px solid #404040;
+    }
+  </style>
+</head>
+
+<body>
+
+
+  <table>
+    <thead>
+      <tr>
+        <th>Time</th>
+        <th>Shake</th>
+        <th>Signal</th>
+        <th>Device Id</th>
+        <th>Light State</th>
+      </tr>
+    </thead>
+    <tbody id='fill_table'>
+
+    </tbody>
+  </table>
+
+
+</body>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+
+  const socket = io();
+  const table = document.getElementById("fill_table");
+
+  socket.on('log_list', function (data) {
+
+    for (let item of data) {
+      let row = makeItem(item)
+      table.appendChild(row)
+    }
+  });
+
+
+  socket.on('update_log_list', function (data) {
+    let row = makeItem(data);
+    table.prepend(row)
+  });
+
+  function makeItem(item) {
+    let row = document.createElement("tr")
+
+    for (let prop in item) {
+      let col = document.createElement("td")
+      col.innerHTML = item[prop]
+      row.appendChild(col)
+    }
+    return row;
+  }
+
+</script>
+
+</html>
