@@ -7,6 +7,8 @@ const http = require('http').Server(app);
 const io = require('socket.io')(http);
 const bodyParser = require('body-parser');
 
+const axios = require("axios");
+
 
 const events = [];
 
@@ -29,8 +31,6 @@ app.post('/log_action', function (req, res) {
 
     events.push(data);
 
-    console.log(events);
-
     io.emit('update_log_list', data);
 
     fs.appendFile('placelog.txt', "date: " + new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + JSON.stringify(data), function (err) {
@@ -38,7 +38,6 @@ app.post('/log_action', function (req, res) {
             console.log(err);
         }
     });
-
 
     res.writeHead(200);
     res.end();
@@ -54,10 +53,36 @@ io.on('connection', function (socket) {
     socket.emit('log_list', events);
     socket.broadcast.emit('log_list', events);
 
+    socket.on('toggleLight', (stuff)=>{
+        console.log('send req for ')
+        console.log(stuff)
+
+        axios.get("http://192.168.1.35/toggle_light")
+        .then((res)=> {
+            console.log(res.data)
+
+            let data = {
+                time: Date.now(),
+                shake: res.data.shake,
+                signal: res.data.signal,
+                device_id: res.data.device_id,
+                light_state: res.data.light_state
+            };
+        
+            events.push(data);
+        
+            io.emit('update_log_list', data);
+
+
+        })
+    })
+
     socket.on('disconnect', function () {
 
         console.log('user disconnected');
     });
+
+
 
 });
 

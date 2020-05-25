@@ -24,7 +24,7 @@
 </head>
 
 <body>
-
+  <button id="lightToggle">Toggle light of duck_one</button>
 
   <table>
     <thead>
@@ -57,10 +57,15 @@
     }
   });
 
-
   socket.on('update_log_list', function (data) {
     let row = makeItem(data);
     table.prepend(row)
+  });
+
+  let toggleButton = document.getElementById("lightToggle");
+  toggleButton.addEventListener("click", ()=> {
+    console.log("click")
+    socket.emit("toggleLight", {deviceId: "duck_one"})
   });
 
   function makeItem(item) {
@@ -68,7 +73,11 @@
 
     for (let prop in item) {
       let col = document.createElement("td")
-      col.innerHTML = item[prop]
+      if(prop == "time"){
+        col.innerHTML = ` ${new Date(item[prop]).toLocaleTimeString()} ${new Date(item[prop]).toDateString()}`; 
+      } else {
+        col.innerHTML = item[prop]
+      }
       row.appendChild(col)
     }
     return row;
