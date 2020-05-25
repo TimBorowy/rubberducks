@@ -33,7 +33,7 @@ app.post('/log_action', function (req, res) {
 
     io.emit('update_log_list', data);
 
-    fs.appendFile('placelog.txt', "date: " + new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + JSON.stringify(data), function (err) {
+    fs.appendFile('events.log', "date: " + new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + JSON.stringify(data), function (err) {
         if (err) {
             console.log(err);
         }
