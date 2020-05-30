@@ -8,13 +8,14 @@ const bodyParser = require('body-parser');
 const axios = require("axios");
 const serverPort = 1337;
 
-
 const events = [];
 
 app.use(bodyParser.json());       // to support JSON-encoded bodies
 app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
     extended: true
 }));
+
+app.use(express.static('public'))
 
 app.post('/log_action', function (req, res) {
     // Request
@@ -43,7 +44,7 @@ app.post('/log_action', function (req, res) {
 });
 
 app.get('/', function (req, res) {
-    res.sendFile(__dirname + '/index.html');
+    res.sendFile(__dirname + '/public/index.html');
 });
 
 

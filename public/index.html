@@ -3,43 +3,34 @@
 
 <head>
   <title>ESPduck messages</title>
-  <style type="text/css">
-    * {
-      font-family: sans-serif;
-      font-size: 1em;
-    }
-
-    table {
-      width: 100%;
-    }
-
-    tr {
-      text-align: left;
-    }
-
-    table tr {
-      border: 2px solid #404040;
-    }
-  </style>
+  <link rel="stylesheet" href="style.css">
 </head>
 
 <body>
-  <button id="lightToggle">Toggle light of duck_one</button>
+  <div id="logo-container">
+    <img id="logo" src="duck.svg" alt="Picture of duck">
+  </div>
+  <nav>
+    <button id="lightToggle">Toggle light of duck_one</button>
+  </nav>
 
-  <table>
-    <thead>
-      <tr>
-        <th>Time</th>
-        <th>Shake</th>
-        <th>Signal</th>
-        <th>Device Id</th>
-        <th>Light State</th>
-      </tr>
-    </thead>
-    <tbody id='fill_table'>
+  <section class="data">
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Shake</th>
+          <th>Signal</th>
+          <th>Device Id</th>
+          <th>Light State</th>
+        </tr>
+      </thead>
+      <tbody id='fill_table'>
 
-    </tbody>
-  </table>
+      </tbody>
+    </table>
+  </section>
+
 
 
 </body>
@@ -63,9 +54,9 @@
   });
 
   let toggleButton = document.getElementById("lightToggle");
-  toggleButton.addEventListener("click", ()=> {
+  toggleButton.addEventListener("click", () => {
     console.log("click")
-    socket.emit("toggleLight", {deviceId: "duck_one"})
+    socket.emit("toggleLight", { deviceId: "duck_one" })
   });
 
   function makeItem(item) {
@@ -73,8 +64,8 @@
 
     for (let prop in item) {
       let col = document.createElement("td")
-      if(prop == "time"){
-        col.innerHTML = ` ${new Date(item[prop]).toLocaleTimeString()} ${new Date(item[prop]).toDateString()}`; 
+      if (prop == "time") {
+        col.innerHTML = ` ${new Date(item[prop]).toLocaleTimeString()} ${new Date(item[prop]).toDateString()}`;
       } else {
         col.innerHTML = item[prop]
       }
