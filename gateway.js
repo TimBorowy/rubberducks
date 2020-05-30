@@ -1,13 +1,12 @@
-
 const express = require('express');
 const app = express();
 const fs = require('fs');
-
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
 const bodyParser = require('body-parser');
 
 const axios = require("axios");
+const serverPort = 1337;
 
 
 const events = [];
@@ -72,8 +71,6 @@ io.on('connection', function (socket) {
             events.push(data);
         
             io.emit('update_log_list', data);
-
-
         })
     })
 
@@ -82,11 +79,10 @@ io.on('connection', function (socket) {
         console.log('user disconnected');
     });
 
-
-
 });
 
 
-http.listen(1337, function () {
-    console.log('place log app running on port 1337!')
+http.listen(serverPort, function () {
+    console.log(`Gateway running on port ${serverPort}!`)
+    console.log(`http://localhost:${serverPort}/`)
 });
