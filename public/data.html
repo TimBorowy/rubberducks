@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+  <title>ESPduck messages</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <div id="logo-container">
+    <img id="logo" src="duck.svg" alt="Picture of duck">
+  </div>
+  <nav>
+    <button id="lightToggle">Toggle light of duck_one</button>
+  </nav>
+
+  <section class="data">
+    <table>
+      <thead>
+        <tr>
+          <th>Time</th>
+          <th>Shake</th>
+          <th>Signal</th>
+          <th>Device Id</th>
+          <th>Light State</th>
+        </tr>
+      </thead>
+      <tbody id='fill_table'>
+
+      </tbody>
+    </table>
+  </section>
+
+
+
+</body>
+<script src="/socket.io/socket.io.js"></script>
+<script>
+
+  const socket = io();
+  const table = document.getElementById("fill_table");
+
+  socket.on('log_list', function (data) {
+
+    for (let item of data) {
+      let row = makeItem(item)
+      table.appendChild(row)
+    }
+  });
+
+  socket.on('update_log_list', function (data) {
+    let row = makeItem(data);
+    table.prepend(row)
+  });
+
+  let toggleButton = document.getElementById("lightToggle");
+  toggleButton.addEventListener("click", () => {
+    console.log("click")
+    socket.emit("toggleLight", { deviceId: "duck_one" })
+  });
+
+  function makeItem(item) {
+    let row = document.createElement("tr")
+
+    for (let prop in item) {
+      let col = document.createElement("td")
+      if (prop == "time") {
+        col.innerHTML = ` ${new Date(item[prop]).toLocaleTimeString()} ${new Date(item[prop]).toDateString()}`;
+      } else {
+        col.innerHTML = item[prop]
+      }
+      row.appendChild(col)
+    }
+    return row;
+  }
+
+</script>
+
+</html>

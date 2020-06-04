@@ -33,31 +33,53 @@ app.post('/log_action', function (req, res) {
 
     io.emit('update_log_list', data);
 
+    res.writeHead(200);
+    res.end();
     fs.appendFile('events.log', "date: " + new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + JSON.stringify(data), function (err) {
         if (err) {
             console.log(err);
         }
     });
 
-    res.writeHead(200);
-    res.end();
+    toggleLight();
 });
 
 app.get('/', function (req, res) {
     res.sendFile(__dirname + '/public/index.html');
 });
 
+app.get('/data', function (req, res) {
+    res.sendFile(__dirname + '/public/data.html');
+});
+
 
 io.on('connection', function (socket) {
 
     socket.emit('log_list', events);
-    socket.broadcast.emit('log_list', events);
 
     socket.on('toggleLight', (stuff)=>{
         console.log('send req for ')
         console.log(stuff)
 
-        axios.get("http://192.168.1.35/toggle_light")
+        toggleLight();
+    })
+
+    socket.on('disconnect', function () {
+
+        console.log('user disconnected');
+    });
+
+});
+
+
+http.listen(serverPort, function () {
+    console.log(`Gateway running on port ${serverPort}!`)
+    console.log(`http://localhost:${serverPort}/`)
+});
+
+
+function toggleLight(device_id){
+    axios.get("http://192.168.1.35/toggle_light")
         .then((res)=> {
             console.log(res.data)
 
@@ -73,17 +95,4 @@ io.on('connection', function (socket) {
         
             io.emit('update_log_list', data);
         })
-    })
-
-    socket.on('disconnect', function () {
-
-        console.log('user disconnected');
-    });
-
-});
-
-
-http.listen(serverPort, function () {
-    console.log(`Gateway running on port ${serverPort}!`)
-    console.log(`http://localhost:${serverPort}/`)
-});
+}

@@ -10,22 +10,31 @@
   <div id="logo-container">
     <img id="logo" src="duck.svg" alt="Picture of duck">
   </div>
-  <nav>
-    <button id="lightToggle">Toggle light of duck_one</button>
-  </nav>
 
   <section class="data">
     <table>
       <thead>
         <tr>
-          <th>Time</th>
-          <th>Shake</th>
-          <th>Signal</th>
-          <th>Device Id</th>
-          <th>Light State</th>
+          <th>Person</th>
+          <th>Status</th>
         </tr>
       </thead>
       <tbody id='fill_table'>
+        <tr>
+          <td>Tim Borowy</td>
+          <td>Debugging</td>
+          <td><img src="noun_Frustrated.svg" alt="Frustrated face" width="40"></td>
+        </tr>
+        <tr>
+          <td>Peter Parker</td>
+          <td>Consulting</td>
+          <td><img src="noun_Happy.svg" alt="Happy face" width="40"></td>
+        </tr>
+        <tr>
+          <td>Bruce Banner</td>
+          <td>Rampaging</td>
+          <td><img src="noun_Angry.svg" alt="Angry face" width="40"></td>
+        </tr>
 
       </tbody>
     </table>
@@ -42,37 +51,11 @@
 
   socket.on('log_list', function (data) {
 
-    for (let item of data) {
-      let row = makeItem(item)
-      table.appendChild(row)
-    }
   });
 
   socket.on('update_log_list', function (data) {
-    let row = makeItem(data);
-    table.prepend(row)
+ 
   });
-
-  let toggleButton = document.getElementById("lightToggle");
-  toggleButton.addEventListener("click", () => {
-    console.log("click")
-    socket.emit("toggleLight", { deviceId: "duck_one" })
-  });
-
-  function makeItem(item) {
-    let row = document.createElement("tr")
-
-    for (let prop in item) {
-      let col = document.createElement("td")
-      if (prop == "time") {
-        col.innerHTML = ` ${new Date(item[prop]).toLocaleTimeString()} ${new Date(item[prop]).toDateString()}`;
-      } else {
-        col.innerHTML = item[prop]
-      }
-      row.appendChild(col)
-    }
-    return row;
-  }
 
 </script>
 
