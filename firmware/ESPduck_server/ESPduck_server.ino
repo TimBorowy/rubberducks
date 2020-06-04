@@ -10,6 +10,8 @@ WiFiMulti wifiMulti;
 #include <WebServer.h>
 #include <ESPmDNS.h>
 
+#include "Settings.h"
+
 WebServer server(80);
 
 const int MPU_addr=0x68;  // I2C address of the MPU-6050
@@ -18,9 +20,9 @@ int shakeCount = 0;
 int shakeCountThreshhold = 3; // Amount of shakes required for a detection
 int last_x,last_y,last_z;
 
-const char* ssid = "bobonet 3.6";
-const char* pass = "Hetisjouwwachtwoord!";
-String deviceId = "duck_one";
+const char* ssid = CONFIG_SSID;
+const char* pass = CONFIG_PASS;
+String deviceId = CONFIG_DEVICE_ID;
 bool lightState = true;
 
 int counter = 0;
@@ -120,7 +122,7 @@ void loop() {
   // Shake detection logic
   int val = abs(AcX+AcY+AcZ - last_x - last_y - last_z);
   Serial.println(val);
-  if(val > 30000){
+  if(val > 25000){
     // Shaking is detected in an axis
 
     // Up the count and check if count is over threshhold
