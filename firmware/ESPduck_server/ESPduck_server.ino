@@ -15,7 +15,7 @@ WebServer server(80);
 const int MPU_addr=0x68;  // I2C address of the MPU-6050
 int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ;
 int shakeCount = 0;
-int previousShakeCount;
+int shakeThreshhold = 6; // Amount of shakes required for a detection
 
 const char* ssid = "bobonet 3.6";
 const char* pass = "Hetisjouwwachtwoord!";
@@ -94,6 +94,11 @@ void loop() {
     counter++;
     // Make pixel red
     pixels.setPixelColor(counter%7, pixels.Color(255,0,211));
+  } else {
+    // Make green
+    for(int i=0;i<7;i++){
+      pixels.setPixelColor(i, pixels.Color(0,255,0));
+    }
   }
   
   pixels.show();
@@ -111,32 +116,27 @@ void loop() {
   GyZ=Wire.read()<<8|Wire.read();  // 0x47 (GYRO_ZOUT_H) & 0x48 (GYRO_ZOUT_L)
 
 
-  if(shakeCount > 6){
-    //Anger detection send request
-    sendRequest();
-    // reset
+  // Shake detection logic
+  if(
+      (GyX > 20000 || GyX < -20000) ||
+      (GyY > 20000 || GyY < -20000) ||
+      (GyY > 20000 || GyY < -20000)
+    ){
+    // Shaking is detected in an axis
+
+    // Up the count and check if count is over threshhold
+    if(shakeCount++ > shakeThreshhold){
+      //Send request
+      sendRequest();
+      // Reset shakecount
+      shakeCount = 0;
+    }
+  } else {
+    // Reset shakecount
     shakeCount = 0;
   }
 
-  if(GyX > 20000 || GyX < -20000){
-    //Shaking in X
-    shakeCount++;
-  }
-  if(GyY > 20000 || GyY < -20000){
-    //Shaking in Y
-    shakeCount++;
-  }
-  if(GyZ > 20000 || GyZ < -20000){
-    //Shaking in Z
-    shakeCount++;
-  }
-  
-  if(previousShakeCount == shakeCount){
-    // reset
-    shakeCount = 0;
-  }
-  previousShakeCount = shakeCount;
-
+  // Preform detection every 100ms
   delay(100);
 }
 
