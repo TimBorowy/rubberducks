@@ -15,7 +15,8 @@ WebServer server(80);
 const int MPU_addr=0x68;  // I2C address of the MPU-6050
 int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ;
 int shakeCount = 0;
-int shakeThreshhold = 6; // Amount of shakes required for a detection
+int shakeCountThreshhold = 3; // Amount of shakes required for a detection
+int last_x,last_y,last_z;
 
 const char* ssid = "bobonet 3.6";
 const char* pass = "Hetisjouwwachtwoord!";
@@ -117,15 +118,13 @@ void loop() {
 
 
   // Shake detection logic
-  if(
-      (GyX > 20000 || GyX < -20000) ||
-      (GyY > 20000 || GyY < -20000) ||
-      (GyY > 20000 || GyY < -20000)
-    ){
+  int val = abs(AcX+AcY+AcZ - last_x - last_y - last_z);
+  Serial.println(val);
+  if(val > 30000){
     // Shaking is detected in an axis
 
     // Up the count and check if count is over threshhold
-    if(shakeCount++ > shakeThreshhold){
+    if(shakeCount++ > shakeCountThreshhold){
       //Send request
       sendRequest();
       // Reset shakecount
@@ -135,6 +134,10 @@ void loop() {
     // Reset shakecount
     shakeCount = 0;
   }
+  
+  last_x = AcX;
+  last_y = AcY;
+  last_z = AcZ;
 
   // Preform detection every 100ms
   delay(100);
