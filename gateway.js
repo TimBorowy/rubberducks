@@ -9,6 +9,16 @@ const axios = require("axios");
 const serverPort = 1337;
 
 const events = [];
+const ducks = [
+    {
+        device_id: "duck_tape",
+        ip_address: "192.168.1.35"
+    },
+    {
+        device_id: "duck_two",
+        ip_address: "192.168.1.36"
+    }
+];
 
 app.use(bodyParser.json());       // to support JSON-encoded bodies
 app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
@@ -18,30 +28,46 @@ app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
 app.use(express.static('public'))
 
 app.post('/log_action', function (req, res) {
-    // Request
+    // Event Request
     console.log(req.body);
 
     let data = {
-        time: Date.now(),
+        device_id: req.body.device_id,
         shake: req.body.shake,
         signal: req.body.signal,
-        device_id: req.body.device_id,
-        light_state: req.body.light_state
+        light_state: req.body.light_state,
+        time: Date.now(),
     };
-
-    events.push(data);
-
+    // Emit event to ws client
     io.emit('update_log_list', data);
-
+    
+    // Finish request
     res.writeHead(200);
     res.end();
-    fs.appendFile('events.log', "date: " + new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + JSON.stringify(data), function (err) {
-        if (err) {
-            console.log(err);
-        }
-    });
+    
+    // Log event data
+    events.push(data);
+    logEvent(data);
 
-    toggleLight();
+    // Filter event data for duck_two and shake
+    const filteredData = events.filter( d => d.device_id === "duck_two" && d.shake == true);
+    // Sort by timestamp desc
+    const sortedData = filteredData.sort( (a, b) => b.time - a.time)
+    // calc time between begining and and of latest 3 shakes
+    if(sortedData.length > 3){
+        const timeBetween = sortedData[0].time - sortedData[2].time
+        console.log("timeBetween: ", timeBetween)
+    
+        // When 3 shakes occur in 1 minute raise mental state
+        if(timeBetween <= 60*1000){
+            console.log("3 shakes detected!! Raising state");
+        }
+    }
+
+
+    toggleLight(data.device_id);
+    // Deactivate after 3 seconds
+    setTimeout(()=>{toggleLight(data.device_id)}, 3000);
 });
 
 app.get('/', function (req, res) {
@@ -57,18 +83,13 @@ io.on('connection', function (socket) {
 
     socket.emit('log_list', events);
 
-    socket.on('toggleLight', (stuff)=>{
-        console.log('send req for ')
-        console.log(stuff)
-
-        toggleLight();
+    socket.on('toggleLight', (data)=>{
+        toggleLight(data.device_id);
     })
 
     socket.on('disconnect', function () {
-
         console.log('user disconnected');
     });
-
 });
 
 
@@ -77,22 +98,47 @@ http.listen(serverPort, function () {
     console.log(`http://localhost:${serverPort}/`)
 });
 
+//setInterval(timedCycle, 1000)
+
+// Resets state
+function timedCycle(){
+    console.log("cycle")
+
+}
+
+function logEvent(data){
+    fs.appendFile('events.log', "date: " + new Date().toISOString().replace(/T/, ' ').replace(/\..+/, '') + JSON.stringify(data), function (err) {
+        if (err) {
+            console.log(err);
+        }
+    });
+}
+
 
 function toggleLight(device_id){
-    axios.get("http://192.168.1.35/toggle_light")
-        .then((res)=> {
-            console.log(res.data)
+    console.log("toggle event device_id: ", device_id)
 
+    // Match device_id to duck to find ip adress
+    let duck = ducks.find(d => d.device_id === device_id)
+
+    if(duck){
+        axios.get(`http://${duck.ip_address}/toggle_light`)
+        .then((res)=> {
             let data = {
-                time: Date.now(),
+                device_id: res.data.device_id,
                 shake: res.data.shake,
                 signal: res.data.signal,
-                device_id: res.data.device_id,
-                light_state: res.data.light_state
+                light_state: res.data.light_state,
+                time: Date.now(),
             };
         
             events.push(data);
         
             io.emit('update_log_list', data);
         })
+        .catch((err) => {console.log(err)})
+
+    } else {
+        return false
+    } 
 }

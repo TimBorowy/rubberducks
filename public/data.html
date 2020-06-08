@@ -11,18 +11,20 @@
     <img id="logo" src="duck.svg" alt="Picture of duck">
   </div>
   <nav>
-    <button id="lightToggle">Toggle light of duck_one</button>
+    <button class="lightToggle" data-duck="duck_one">Toggle light of duck_one</button>
+    <button class="lightToggle" data-duck="duck_two">Toggle light of duck_two</button>
+    <button class="lightToggle" data-duck="blabliebloe">Toggle light of non existent duck</button>
   </nav>
 
   <section class="data">
     <table>
       <thead>
         <tr>
-          <th>Time</th>
+          <th>Device Id</th>
           <th>Shake</th>
           <th>Signal</th>
-          <th>Device Id</th>
           <th>Light State</th>
+          <th>Time</th>
         </tr>
       </thead>
       <tbody id='fill_table'>
@@ -53,11 +55,17 @@
     table.prepend(row)
   });
 
-  let toggleButton = document.getElementById("lightToggle");
-  toggleButton.addEventListener("click", () => {
-    console.log("click")
-    socket.emit("toggleLight", { deviceId: "duck_one" })
-  });
+  let toggleButtons = document.querySelectorAll(".lightToggle");
+  for(let button of toggleButtons){
+    button.addEventListener("click", (e) => {
+      let duck_id = e.target.dataset.duck
+      console.log("click")
+      console.log(e.target.dataset.duck)
+
+      socket.emit("toggleLight", { device_id: duck_id })
+    });
+  }
+  
 
   function makeItem(item) {
     let row = document.createElement("tr")
