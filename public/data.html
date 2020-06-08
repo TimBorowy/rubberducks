@@ -41,6 +41,7 @@
 
   const socket = io();
   const table = document.getElementById("fill_table");
+  const audio = new Audio('quack.mp3');
 
   socket.on('log_list', function (data) {
 
@@ -58,6 +59,8 @@
   let toggleButtons = document.querySelectorAll(".lightToggle");
   for(let button of toggleButtons){
     button.addEventListener("click", (e) => {
+      
+      audio.play();
       let duck_id = e.target.dataset.duck
       console.log("click")
       console.log(e.target.dataset.duck)
