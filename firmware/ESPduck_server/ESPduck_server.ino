@@ -154,7 +154,7 @@ void handleLightChange() {
   const size_t capacity = JSON_OBJECT_SIZE(5);
     DynamicJsonDocument doc(capacity);
     
-    doc["shake"] = "false";
+    doc["shake"] = false;
     doc["signal"] = WiFi.RSSI();
     doc["device_id"] = deviceId;
     doc["light_state"] = lightState;
@@ -190,7 +190,7 @@ void sendRequest(){
     const size_t capacity = JSON_OBJECT_SIZE(5);
     DynamicJsonDocument doc(capacity);
     
-    doc["shake"] = "true";
+    doc["shake"] = true;
     doc["signal"] = WiFi.RSSI();
     doc["device_id"] = deviceId;
     doc["light_state"] = lightState;
