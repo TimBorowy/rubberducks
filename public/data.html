@@ -11,7 +11,7 @@
     <img id="logo" src="duck.svg" alt="Picture of duck">
   </div>
   <nav>
-    <button class="lightToggle" data-duck="duck_one">Toggle light of duck_one</button>
+    <button class="lightToggle" data-duck="duck_tape">Toggle light of duck_tape</button>
     <button class="lightToggle" data-duck="duck_two">Toggle light of duck_two</button>
     <button class="lightToggle" data-duck="blabliebloe">Toggle light of non existent duck</button>
   </nav>
@@ -41,7 +41,8 @@
 
   const socket = io();
   const table = document.getElementById("fill_table");
-  const audio = new Audio('quack.mp3');
+  const duckSound = new Audio('quack.mp3');
+  duckSound.volume = 0.1;
 
   socket.on('log_list', function (data) {
 
@@ -60,7 +61,7 @@
   for(let button of toggleButtons){
     button.addEventListener("click", (e) => {
       
-      audio.play();
+      duckSound.play();
       let duck_id = e.target.dataset.duck
       console.log("click")
       console.log(e.target.dataset.duck)
