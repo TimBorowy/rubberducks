@@ -14,7 +14,7 @@
   <link rel="apple-touch-icon" sizes="144x144" href="/apple-icon-144x144.png">
   <link rel="apple-touch-icon" sizes="152x152" href="/apple-icon-152x152.png">
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-icon-180x180.png">
-  <link rel="icon" type="image/png" sizes="192x192"  href="/android-icon-192x192.png">
+  <link rel="icon" type="image/png" sizes="192x192" href="/android-icon-192x192.png">
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16x16.png">
@@ -41,21 +41,6 @@
         </tr>
       </thead>
       <tbody id='fill_table'>
-        <tr>
-          <td>Tim Borowy</td>
-          <td>Debugging</td>
-          <td><img src="media/noun_Frustrated.svg" alt="Frustrated face" width="40"></td>
-        </tr>
-        <tr>
-          <td>Peter Parker</td>
-          <td>Consulting</td>
-          <td><img src="media/noun_Happy.svg" alt="Happy face" width="40"></td>
-        </tr>
-        <tr>
-          <td>Bruce Banner</td>
-          <td>Rampaging</td>
-          <td><img src="media/noun_Angry.svg" alt="Angry face" width="40"></td>
-        </tr>
 
       </tbody>
     </table>
@@ -69,14 +54,44 @@
 
   const socket = io();
   const table = document.getElementById("fill_table");
+  const states = [
+    {label: "Neutral", img: "media/noun_Happy.svg"},
+    {label: "Debugging", img: "media/noun_Happy.svg"},
+    {label: "Slightly frustrated", img: "media/noun_Frustrated.svg"},
+    {label: "Frustrated", img: "media/noun_Frustrated.svg"},
+    {label: "RAMpAGiNg", img: "media/noun_Angry.svg"},
+  ]
 
-  socket.on('log_list', function (data) {
+  socket.on('mental_state', function (data) {
+    console.log("New data: ", data)
+    table.innerHTML = ""
 
+    for (let item of data) {
+      let row = makeItem(item)
+      table.appendChild(row)
+    }
+     // Just for fun
+     table.appendChild(makeItem({person: "Bruce Banner", state: 4}))
   });
 
-  socket.on('update_log_list', function (data) {
- 
-  });
+
+  function makeItem(item) {
+    let row = document.createElement("tr");
+    
+    let person = document.createElement("td");
+    person.innerText = item.person;
+    row.appendChild(person);
+
+    let status = document.createElement("td");
+    status.innerText = states[item.state].label;
+    row.appendChild(status);
+
+    let img = document.createElement("td");
+    img.innerHTML = `<img src="${states[item.state].img}" alt="Angry face" width="40">`;
+    row.appendChild(img);
+
+    return row;
+  }
 
 </script>
 

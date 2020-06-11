@@ -12,7 +12,7 @@ body{
 }
 
 nav{ 
-  margin: 10px 140px;
+  margin: 10px 90px;
 }
 
 button{
@@ -38,5 +38,7 @@ table tr {
 }
 
 .data{
-  margin: 10px 10%;
+  margin: 10px 40px;
+  height: 60vh;
+  overflow-y: scroll;
 }
