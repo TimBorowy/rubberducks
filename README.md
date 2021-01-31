@@ -1,16 +1,23 @@
-# Een event gateway voor de ESPduckies
+# An event gateway for the Duck Buddies
+Connects to the MQTT gateway and is used to commuticate and orchistrate the ESPDuckies
 
-## Toevoegen:
+![](https://i.imgur.com/7J5Kn.jpg)
 
-POST naar:
-`/log_action`
-Met de params:
+## Install
+Run `npm install` in the root directory and run `npm start` to spin 'er up
 
-- shake `boolean`
-- signal `integer`
-- device_id `string`
-- light_state `boolean`
+Copy the settings_example.h to a settings.h file and fill in the WiFi details.
 
-## Inzien / interactie
+Flash the ESPduck_server.ino on the ESP32's 
 
-Op `/` zijn de logs realtime zichtbaar.
+## Specific Libraries used:
+- ArduinoJSON https://github.com/bblanchon/ArduinoJson
+- PubSubClient https://github.com/knolleary/pubsubclient
+- MQTT https://www.npmjs.com/package/mqtt
+
+
+
+
+## See data / interaction
+On `/` you can see the emotional states of the duckies (anger)  
+Checkout `/data` to see the logs and toggle light states.
