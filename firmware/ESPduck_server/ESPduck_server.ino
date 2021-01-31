@@ -1,6 +1,8 @@
 /*********
-  Rui Santos
-  Complete project details at https://randomnerdtutorials.com  
+ Rubberduck Firmware version 2.1
+ 31-01-2021 Tim Borowy
+
+ ToDo: add mqtt password protection and SSL
 *********/
 #include <Wire.h>
 #include <ArduinoJson.h>
@@ -9,7 +11,7 @@
 #include <PubSubClient.h>
 
 #include "Settings.h"
-// number of leds
+// Number of leds
 CRGB leds[7];
 
 const int MPU_addr=0x68;  // I2C address of the MPU-6050
@@ -28,7 +30,6 @@ bool lightState = true;
 WiFiClient espClient;
 PubSubClient client(espClient);
 long lastMsg = 0;
-//char msg[50];
 
 void setup() {
   Serial.begin(115200);
@@ -76,7 +77,7 @@ void callback(char* topic, byte* message, unsigned int length) {
   Serial.print(". Message: ");
   String msg;
 
-  // process mqtt message
+  // process MQTT message
   for (int i = 0; i < length; i++) {
     Serial.print((char)message[i]);
     msg += (char)message[i];
@@ -134,7 +135,7 @@ void loop() {
   }
   FastLED.show();
 
-  // detect shakes every 100ms without delay
+  // Detect shakes every 100ms without delay
   long now = millis();
   if (now - lastMsg > 100) {
     lastMsg = now;
