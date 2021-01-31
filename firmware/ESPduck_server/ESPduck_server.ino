@@ -1,18 +1,16 @@
-
-#include <Arduino.h>
-#include <WiFi.h>
-#include <WiFiMulti.h>
-#include <HTTPClient.h>
+/*********
+  Rui Santos
+  Complete project details at https://randomnerdtutorials.com  
+*********/
 #include <Wire.h>
 #include <ArduinoJson.h>
-#include <Adafruit_NeoPixel.h>
-WiFiMulti wifiMulti;
-#include <WebServer.h>
-#include <ESPmDNS.h>
+#include <FastLED.h>
+#include <WiFi.h>
+#include <PubSubClient.h>
 
 #include "Settings.h"
-
-WebServer server(80);
+// number of leds
+CRGB leds[7];
 
 const int MPU_addr=0x68;  // I2C address of the MPU-6050
 int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ;
@@ -21,19 +19,20 @@ int shakeCountThreshhold = 3; // Amount of shakes required for a detection
 int last_x,last_y,last_z;
 
 const char* ssid = CONFIG_SSID;
-const char* pass = CONFIG_PASS;
-String deviceId = CONFIG_DEVICE_ID;
+const char* password = CONFIG_PASS;
+const String deviceId = CONFIG_DEVICE_ID;
+const char* mqtt_server = "mqtt.timborowy.nl";
 bool lightState = true;
 
-int counter = 0;
 
-Adafruit_NeoPixel pixels = Adafruit_NeoPixel(7, 12, NEO_GRB + NEO_KHZ800);
-
+WiFiClient espClient;
+PubSubClient client(espClient);
+long lastMsg = 0;
+//char msg[50];
 
 void setup() {
-
   Serial.begin(115200);
-  
+
   // MPU setup
   Wire.begin();
   Wire.beginTransmission(MPU_addr);
@@ -41,71 +40,110 @@ void setup() {
   Wire.write(0);     // set to zero (wakes up the MPU-6050)
   Wire.endTransmission(true);
 
-  
-  // WIFI setup
-  Serial.print("Connecting");
-  
-  wifiMulti.addAP(ssid, pass);
-  
-  // While wifi not connected yet, print '.'
-  while (wifiMulti.run() != WL_CONNECTED) {
-     delay(500);
-     Serial.print(".");
-  }
-  
-  // Connected
-  Serial.println("OK!");
-  
-  // Access Point (SSID).
-  Serial.print("SSID: ");
-  Serial.println(WiFi.SSID());
-  
-  // IP adres
-  Serial.print("IP: ");
-  Serial.println(WiFi.localIP());
- 
-  // Signal strength
-  long rssi = WiFi.RSSI();
-  Serial.print("Signaal sterkte (RSSI): ");
-  Serial.print(rssi);
-  Serial.println(" dBm");
-  Serial.println("");
+  setup_wifi();
+  client.setServer(mqtt_server, 1883);
+  client.setCallback(callback);
 
-  pixels.begin();
+  // ledpin = 12, num of leds = 7 
+  FastLED.addLeds<NEOPIXEL, 12>(leds, 7);  // GRB ordering is assumed
 
-
-  if (MDNS.begin("esp32")) {
-    Serial.println("MDNS responder started");
-  }
-
-  server.on("/", handleRoot);
-  server.on("/toggle_light", handleLightChange);
-  server.onNotFound(handleNotFound);
-  server.begin();
-  Serial.println("HTTP server started");
 }
 
+void setup_wifi() {
+  delay(10);
+  // We start by connecting to a WiFi network
+  Serial.println();
+  Serial.print("Connecting to ");
+  Serial.println(ssid);
+
+  WiFi.begin(ssid, password);
+
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+
+  Serial.println("");
+  Serial.println("WiFi connected");
+  Serial.println("IP address: ");
+  Serial.println(WiFi.localIP());
+}
+
+// Receiving messages
+void callback(char* topic, byte* message, unsigned int length) {
+  Serial.print("Message arrived on topic: ");
+  Serial.print(topic);
+  Serial.print(". Message: ");
+  String msg;
+
+  // process mqtt message
+  for (int i = 0; i < length; i++) {
+    Serial.print((char)message[i]);
+    msg += (char)message[i];
+  }
+  Serial.println();
+
+  // Changes the lights according to the message
+  if (String(topic) == "ducks/flash") {
+    lightState = !lightState;
+    Serial.println("lightstate changed");
+    Serial.println(msg);
+  }
+}
+
+void reconnect() {
+  // Loop until we're reconnected
+  while (!client.connected()) {
+    Serial.print("Attempting MQTT connection...");
+    // Attempt to connect
+    if (client.connect("ESP8266Client")) {
+      Serial.println("connected");
+      // Subscribe
+      client.subscribe("ducks/flash");
+    } else {
+      Serial.print("failed, rc=");
+      Serial.print(client.state());
+      Serial.println(" try again in 5 seconds");
+      // Wait 5 seconds before retrying
+      delay(5000);
+    }
+  }
+}
+int counter = 0;
 void loop() {
-  server.handleClient();
+  if (!client.connected()) {
+    reconnect();
+  }
+  // ?
+  client.loop();
 
   // Clear pixels
   for(int i=0;i<7;i++){
-    pixels.setPixelColor(i, pixels.Color(0,0,0));
+    leds[i] = CRGB::Black;
   }
   
   if(lightState){
     counter++;
     // Make pixel red
-    pixels.setPixelColor(counter%7, pixels.Color(255,0,211));
+    leds[counter%7].setRGB( 255, 0, 221);
   } else {
     // Make green
     for(int i=0;i<7;i++){
-      pixels.setPixelColor(i, pixels.Color(0,255,0));
+      leds[i].setRGB( 0, 255, 0);
     }
   }
-  
-  pixels.show();
-  
+  FastLED.show();
+
+  // detect shakes every 100ms without delay
+  long now = millis();
+  if (now - lastMsg > 100) {
+    lastMsg = now;
+
+    detectShake();
+  }
+}
+
+bool detectShake(){
   Wire.beginTransmission(MPU_addr);
   Wire.write(0x3B);  // starting with register 0x3B (ACCEL_XOUT_H)
   Wire.endTransmission(false);
@@ -127,8 +165,8 @@ void loop() {
 
     // Up the count and check if count is over threshhold
     if(shakeCount++ > shakeCountThreshhold){
-      //Send request
-      sendRequest();
+      //Should send request
+      sendShakeDetectionRequest();
       // Reset shakecount
       shakeCount = 0;
     }
@@ -140,75 +178,21 @@ void loop() {
   last_x = AcX;
   last_y = AcY;
   last_z = AcZ;
-
-  // Preform detection every 100ms
-  delay(100);
 }
 
-void handleRoot() {
-  server.send(200, "text/plain", "Hello from ESPduck! DeviceId: " + deviceId);
-}
-
-void handleLightChange() {
-  lightState = !lightState;
+void sendShakeDetectionRequest(){
   const size_t capacity = JSON_OBJECT_SIZE(5);
-    DynamicJsonDocument doc(capacity);
-    
-    doc["shake"] = false;
-    doc["signal"] = WiFi.RSSI();
-    doc["device_id"] = deviceId;
-    doc["light_state"] = lightState;
+  DynamicJsonDocument doc(capacity);
+  
+  doc["shake"] = true;
+  doc["signal"] = WiFi.RSSI();
+  doc["device_id"] = deviceId;
+  doc["light_state"] = lightState;
 
-    char buffer[capacity];
-    serializeJson(doc, buffer);
-  server.send(200, "application/json", buffer);
-}
+  char buffer[capacity];
+  serializeJson(doc, buffer);
+  
+  Serial.println(buffer);
 
-void handleNotFound() {
-  String message = "File Not Found\n\n";
-  message += "URI: ";
-  message += server.uri();
-  message += "\nMethod: ";
-  message += (server.method() == HTTP_GET) ? "GET" : "POST";
-  message += "\nArguments: ";
-  message += server.args();
-  message += "\n";
-  for (uint8_t i = 0; i < server.args(); i++) {
-    message += " " + server.argName(i) + ": " + server.arg(i) + "\n";
-  }
-  server.send(404, "text/plain", message);
-}
-
-void sendRequest(){
-  if((wifiMulti.run() == WL_CONNECTED)) {
-    
-    HTTPClient http;
-
-    http.begin("http://192.168.1.21:1337/log_action"); //Specify request destination
-    http.addHeader("Content-Type", "application/json"); //Specify content-type header
-
-    const size_t capacity = JSON_OBJECT_SIZE(5);
-    DynamicJsonDocument doc(capacity);
-    
-    doc["shake"] = true;
-    doc["signal"] = WiFi.RSSI();
-    doc["device_id"] = deviceId;
-    doc["light_state"] = lightState;
-
-    char buffer[capacity];
-    serializeJson(doc, buffer);
-    
-    Serial.println(buffer);
-    int httpCode = http.POST(buffer); //Send the request
-    String payload = http.getString();  //Get the response payload
-
-    Serial.println("StatusCode: ");
-    Serial.println(httpCode); //Print HTTP return code
-    Serial.println("Response Payload: ");
-    Serial.println(payload); //Print request response payload
- 
-    http.end();  //Close connection
-  } else {
-    Serial.println("Error in WiFi connection");   
-  }
+  client.publish("ducks/shake", buffer);
 }
