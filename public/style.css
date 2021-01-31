@@ -3,19 +3,21 @@
   font-size: 1em;
   color: #FFF;
 }
-body{
+
+body {
   background-color: #4285f4;
 }
-#logo-container{
+
+#logo-container {
   display: flex;
   justify-content: center;
 }
 
-nav{ 
+nav {
   margin: 10px 90px;
 }
 
-button{
+button {
   padding: 8px;
   border-radius: 5px;
   border: none;
@@ -37,8 +39,9 @@ table tr {
   border: 2px solid #404040;
 }
 
-.data{
-  margin: 10px 40px;
+.data {
+  margin: 10px auto;
+  max-width: 1200px;
   height: 60vh;
   overflow-y: scroll;
 }
