@@ -10,9 +10,9 @@
   "author": "Tim Borowy",
   "license": "MIT",
   "dependencies": {
-    "axios": "^0.19.2",
     "body-parser": "^1.17.1",
-    "express": "^4.15.2",
-    "socket.io": "^1.7.3"
+    "express": "^4.17.1",
+    "mqtt": "^4.2.6",
+    "socket.io": "^3.1.0"
   }
 }
