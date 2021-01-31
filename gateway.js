@@ -4,14 +4,14 @@ const fs = require('fs');
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
 const bodyParser = require('body-parser');
-
-const axios = require("axios");
+const mqtt = require('mqtt')
+const mqttClient = mqtt.connect('mqtt://mqtt.timborowy.nl')
 const serverPort = 1337;
 
 const events = [];
 const ducks = [
     {
-        device_id: "duck_tape",
+        device_id: "Duck_tape",
         ip_address: "192.168.1.35",
         state: 0,
         person: "Tim Borowy"
@@ -31,55 +31,68 @@ app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
 
 app.use(express.static('public'))
 
-app.post('/log_action', function (req, res) {
-    // Event Request
-    console.log(req.body);
-
-    let data = {
-        device_id: req.body.device_id,
-        shake: req.body.shake,
-        signal: req.body.signal,
-        light_state: req.body.light_state,
-        time: Date.now(),
-    };
-    // Emit event to ws client
-    io.emit('update_log_list', data);
-
-    // Finish request
-    res.writeHead(200);
-    res.end();
-
-    // Log event data
-    events.push(data);
-    logEvent(data);
-
-    // Filter event data for current device_id and shake
-    const filteredData = events.filter(d => d.device_id === data.device_id && d.shake == true);
-    // Sort by timestamp desc
-    const sortedData = filteredData.sort((a, b) => b.time - a.time)
-    // calc time between begining and and of latest 3 shakes
-    if (sortedData.length > 3) {
-        const timeBetween = sortedData[0].time - sortedData[2].time
-        console.log("timeBetween: ", timeBetween)
-
-        // When 3 shakes occur in 1 minute raise mental state
-        if (timeBetween <= 60 * 1000) {
-            let index = ducks.findIndex((duck) => duck.device_id === data.device_id)
-            // Never go higher than level 4
-            if (ducks[index].state < 4) {
-                ducks[index].state++
-            }
-
-            console.log("3 shakes detected!! Raising state");
-            io.emit('mental_state', ducks);
+mqttClient.on('connect', function () {
+    mqttClient.subscribe('ducks/shake', function (err) {
+        if (!err) {
+            mqttClient.publish('presence', 'Hello mqtt')
         }
+    })
+})
+
+mqttClient.on('message', function (topic, message) {
+    if (topic == "ducks/shake") {
+
+        // message is Buffer
+        mqttMsg = JSON.parse(message.toString());
+
+        // Event Request
+        console.log(mqttMsg);
+
+        let data = {
+            device_id: mqttMsg.device_id,
+            shake: mqttMsg.shake,
+            signal: mqttMsg.signal,
+            light_state: mqttMsg.light_state,
+            time: Date.now(),
+        };
+        // Emit event to ws client
+        io.emit('update_log_list', data);
+
+        // Log event data
+        events.push(data);
+        logEvent(data);
+
+        // Filter event data for current device_id and shake
+        const filteredData = events.filter(d => d.device_id === data.device_id && d.shake == true);
+        // Sort by timestamp desc
+        const sortedData = filteredData.sort((a, b) => b.time - a.time)
+        // calc time between begining and and of latest 3 shakes
+        if (sortedData.length > 3) {
+            const timeBetween = sortedData[0].time - sortedData[2].time
+            console.log("timeBetween: ", timeBetween)
+
+            // When 3 shakes occur in 1 minute raise mental state
+            if (timeBetween <= 60 * 1000) {
+                let index = ducks.findIndex((duck) => duck.device_id === data.device_id)
+                // Never go higher than level 4
+                if (ducks[index].state < 4) {
+                    ducks[index].state++
+                }
+
+                console.log("3 shakes detected!! Raising state");
+                io.emit('mental_state', ducks);
+            }
+        }
+
+
+        toggleLight(data.device_id);
+        // Deactivate after 3 seconds
+        setTimeout(() => { toggleLight(data.device_id) }, 3000);
+
+
     }
-
-
-    toggleLight(data.device_id);
-    // Deactivate after 3 seconds
-    setTimeout(() => { toggleLight(data.device_id) }, 3000);
-});
+    //mqttClient.end()
+})
 
 app.get('/', function (req, res) {
     res.sendFile(__dirname + '/public/index.html');
@@ -88,7 +101,6 @@ app.get('/', function (req, res) {
 app.get('/data', function (req, res) {
     res.sendFile(__dirname + '/public/data.html');
 });
-
 
 io.on('connection', function (socket) {
 
@@ -104,7 +116,6 @@ io.on('connection', function (socket) {
     });
 });
 
-
 http.listen(serverPort, function () {
     console.log(`Gateway running on port ${serverPort}!`)
     console.log(`http://localhost:${serverPort}/`)
@@ -119,7 +130,7 @@ function resetState() {
 
     for (let duck of ducks) {
         const filteredData = events.filter(d => d.device_id === duck.device_id && d.shake == true);
-        if(filteredData.length != 0){
+        if (filteredData.length != 0) {
             // Sort by timestamp desc
             const sortedData = filteredData.sort((a, b) => b.time - a.time)
 
@@ -128,9 +139,9 @@ function resetState() {
                 duck.state--
                 changed = true
             }
-        } 
+        }
     }
-    if(changed){
+    if (changed) {
         io.emit('mental_state', ducks);
     }
 }
@@ -147,27 +158,10 @@ function logEvent(data) {
 function toggleLight(device_id) {
     console.log("toggle event device_id: ", device_id)
 
+    // publish to all connected ducks a flash command 
+    mqttClient.publish('ducks/flash', 'pls flash XD')
+    // should ducks respond with a status change?
+
     // Match device_id to duck to find ip adress
     let duck = ducks.find(d => d.device_id === device_id)
-
-    if (duck) {
-        axios.get(`http://${duck.ip_address}/toggle_light`)
-            .then((res) => {
-                let data = {
-                    device_id: res.data.device_id,
-                    shake: res.data.shake,
-                    signal: res.data.signal,
-                    light_state: res.data.light_state,
-                    time: Date.now(),
-                };
-
-                events.push(data);
-
-                io.emit('update_log_list', data);
-            })
-            .catch((err) => { console.log(err) })
-
-    } else {
-        return false
-    }
 }
