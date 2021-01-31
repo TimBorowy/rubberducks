@@ -20,7 +20,7 @@ int last_x,last_y,last_z;
 
 const char* ssid = CONFIG_SSID;
 const char* password = CONFIG_PASS;
-const String deviceId = CONFIG_DEVICE_ID;
+const char* deviceId = CONFIG_DEVICE_ID;
 const char* mqtt_server = "mqtt.timborowy.nl";
 bool lightState = true;
 
@@ -96,7 +96,7 @@ void reconnect() {
   while (!client.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect
-    if (client.connect("ESP8266Client")) {
+    if (client.connect(deviceId)) {
       Serial.println("connected");
       // Subscribe
       client.subscribe("ducks/flash");
