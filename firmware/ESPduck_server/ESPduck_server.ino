@@ -23,7 +23,7 @@ int last_x,last_y,last_z;
 const char* ssid = CONFIG_SSID;
 const char* password = CONFIG_PASS;
 const char* deviceId = CONFIG_DEVICE_ID;
-const char* mqtt_server = "mqtt.timborowy.nl";
+const char* mqtt_server = CONFIG_MQTT_SERVER;
 bool lightState = true;
 
 
