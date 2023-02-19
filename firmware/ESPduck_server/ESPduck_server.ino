@@ -7,14 +7,14 @@
 #include <Wire.h>
 #include <ArduinoJson.h>
 #include <FastLED.h>
-#include <WiFi.h>
 #include <PubSubClient.h>
+#include <WiFiManager.h> // https://github.com/tzapu/WiFiManager
 
 #include "Settings.h"
 // Number of leds
 CRGB leds[7];
 
-const int MPU_addr=0x68;  // I2C address of the MPU-6050
+const uint16_t MPU_addr=0x68;  // I2C address of the MPU-6050
 int16_t AcX,AcY,AcZ,Tmp,GyX,GyY,GyZ;
 int shakeCount = 0;
 int shakeCountThreshhold = 3; // Amount of shakes required for a detection
@@ -26,9 +26,8 @@ const char* deviceId = CONFIG_DEVICE_ID;
 const char* mqtt_server = CONFIG_MQTT_SERVER;
 bool lightState = true;
 
-
 WiFiClient espClient;
-PubSubClient client(espClient);
+PubSubClient mqtt(espClient);
 long lastMsg = 0;
 
 void setup() {
@@ -41,9 +40,11 @@ void setup() {
   Wire.write(0);     // set to zero (wakes up the MPU-6050)
   Wire.endTransmission(true);
 
+  // WIFI setup with manager
   setup_wifi();
-  client.setServer(mqtt_server, 1883);
-  client.setCallback(callback);
+
+  mqtt.setServer(mqtt_server, 1883);
+  mqtt.setCallback(callback);
 
   // ledpin = 12, num of leds = 7 
   FastLED.addLeds<NEOPIXEL, 12>(leds, 7);  // GRB ordering is assumed
@@ -51,23 +52,21 @@ void setup() {
 }
 
 void setup_wifi() {
-  delay(10);
-  // We start by connecting to a WiFi network
-  Serial.println();
-  Serial.print("Connecting to ");
-  Serial.println(ssid);
+  WiFiManager wm;
+  // Resets WiFi setting for development
+  //wm.resetSettings();
 
-  WiFi.begin(ssid, password);
+  bool res;
+  res = wm.autoConnect("Duck setup AP");
 
-  while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    Serial.print(".");
+  if(!res) {
+    Serial.println("Failed to connect");
+    // ESP.restart();
+  } 
+  else {
+    //if you get here you have connected to the WiFi    
+    Serial.println("connected...yeey :)");
   }
-
-  Serial.println("");
-  Serial.println("WiFi connected");
-  Serial.println("IP address: ");
-  Serial.println(WiFi.localIP());
 }
 
 // Receiving messages
@@ -90,21 +89,35 @@ void callback(char* topic, byte* message, unsigned int length) {
     Serial.println("lightstate changed");
     Serial.println(msg);
   }
+  if (String(topic) == "ducks//flash") { // todo add sub to personal device id
+    lightState = !lightState;
+    Serial.println("lightstate changed");
+    Serial.println(msg);
+  }
 }
 
 void reconnect() {
   // Loop until we're reconnected
-  while (!client.connected()) {
+  while (!mqtt.connected()) {
     Serial.print("Attempting MQTT connection...");
     // Attempt to connect
-    if (client.connect(deviceId)) {
+    if (mqtt.connect(deviceId, "ducks", "Aremadefromrubber")){
       Serial.println("connected");
       // Subscribe
-      client.subscribe("ducks/flash");
+      mqtt.subscribe("ducks/flash");
+      char channel[20];
+      sprintf(channel, "ducks/%s/flash", deviceId);
+      mqtt.subscribe(channel);
     } else {
-      Serial.print("failed, rc=");
-      Serial.print(client.state());
-      Serial.println(" try again in 5 seconds");
+      // Serial.print("failed to connect to: ");
+      // Serial.print(CONFIG_MQTT_SERVER);
+      // Serial.print(" Using user/pass: ");
+      // Serial.print("rc=");
+      // Serial.print(mqtt.state());
+      char buffer[40];
+      // this is untested
+      sprintf(buffer, "failed to connect to: %s Using user/pass: %s rc= %d", mqtt_server, "ducks",  mqtt.state());
+      Serial.println(" trying again in 5 seconds");
       // Wait 5 seconds before retrying
       delay(5000);
     }
@@ -112,11 +125,11 @@ void reconnect() {
 }
 int counter = 0;
 void loop() {
-  if (!client.connected()) {
+  if (!mqtt.connected()) {
     reconnect();
   }
   // ?
-  client.loop();
+  mqtt.loop();
 
   // Clear pixels
   for(int i=0;i<7;i++){
@@ -148,7 +161,8 @@ bool detectShake(){
   Wire.beginTransmission(MPU_addr);
   Wire.write(0x3B);  // starting with register 0x3B (ACCEL_XOUT_H)
   Wire.endTransmission(false);
-  Wire.requestFrom(MPU_addr,14,true);  // request a total of 14 registers
+  uint8_t stackSize = 14;
+  Wire.requestFrom(MPU_addr,stackSize,true);  // request a total of 14 registers
   AcX=Wire.read()<<8|Wire.read();  // 0x3B (ACCEL_XOUT_H) & 0x3C (ACCEL_XOUT_L)    
   AcY=Wire.read()<<8|Wire.read();  // 0x3D (ACCEL_YOUT_H) & 0x3E (ACCEL_YOUT_L)
   AcZ=Wire.read()<<8|Wire.read();  // 0x3F (ACCEL_ZOUT_H) & 0x40 (ACCEL_ZOUT_L)
@@ -195,5 +209,5 @@ void sendShakeDetectionRequest(){
   
   Serial.println(buffer);
 
-  client.publish("ducks/shake", buffer);
+  mqtt.publish("ducks/shake", buffer);
 }
