@@ -17,7 +17,7 @@ const ducks = [
         person: "Tim Borowy"
     },
     {
-        device_id: "duck_two",
+        device_id: "Duck_tales",
         ip_address: "192.168.1.36",
         state: 0,
         person: "Peter Parker"
@@ -156,10 +156,13 @@ function logEvent(data) {
 
 
 function toggleLight(device_id) {
-    console.log("toggle event device_id: ", device_id)
-
-    // publish to all connected ducks a flash command 
-    mqttClient.publish('ducks/flash', 'pls flash XD')
+    if(device_id){
+        console.log("toggle event device_id: ", device_id)
+        mqttClient.publish(`ducks/${string(device_id)}/flash`, 'pls flash XD')
+    } else{
+        // publish to all connected ducks a flash command 
+        mqttClient.publish('ducks/flash', 'pls flash XD')
+    }
     // should ducks respond with a status change?
 
     // Match device_id to duck to find ip adress
