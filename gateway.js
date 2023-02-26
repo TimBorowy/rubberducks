@@ -1,24 +1,28 @@
 const express = require('express');
 const app = express();
 const fs = require('fs');
+const config = require('./config');
 const http = require('http').Server(app);
 const io = require('socket.io')(http);
 const bodyParser = require('body-parser');
-const mqtt = require('mqtt')
-const mqttClient = mqtt.connect('mqtt://mqtt.timborowy.nl')
-const serverPort = 1337;
+const mqtt = require('mqtt');
+const mqttClient = mqtt.connect({
+    host: config.mqtt.host, 
+    port: config.mqtt.port, 
+    username: config.mqtt.username, 
+    password: config.mqtt.password
+});
+const serverPort = config.app.port;
 
 const events = [];
 const ducks = [
     {
         device_id: "Duck_tape",
-        ip_address: "192.168.1.35",
         state: 0,
         person: "Tim Borowy"
     },
     {
         device_id: "Duck_tales",
-        ip_address: "192.168.1.36",
         state: 0,
         person: "Peter Parker"
     }
@@ -29,14 +33,20 @@ app.use(bodyParser.urlencoded({     // to support URL-encoded bodies
     extended: true
 }));
 
-app.use(express.static('public'))
+app.use(express.static('public'));
 
 mqttClient.on('connect', function () {
     mqttClient.subscribe('ducks/shake', function (err) {
         if (!err) {
-            mqttClient.publish('presence', 'Hello mqtt')
+            mqttClient.publish('presence', 'Hello mqtt');
+        } else {
+            console.error(err);
         }
     })
+})
+
+mqttClient.on('error', function (err) {
+    console.error(err)
 })
 
 mqttClient.on('message', function (topic, message) {
@@ -158,7 +168,7 @@ function logEvent(data) {
 function toggleLight(device_id) {
     if(device_id){
         console.log("toggle event device_id: ", device_id)
-        mqttClient.publish(`ducks/${string(device_id)}/flash`, 'pls flash XD')
+        mqttClient.publish(`ducks/${device_id.toString()}/flash`, 'pls flash XD')
     } else{
         // publish to all connected ducks a flash command 
         mqttClient.publish('ducks/flash', 'pls flash XD')
